@@ -55,7 +55,7 @@ def Date_Time_formatting(data, column_date: str, column_time: str, Format_date= 
     # Use AutoDateLocator and AutoDateFormatter
     locator = mdates.AutoDateLocator()      # automatically choose tick positions
     formatter = mdates.AutoDateFormatter(locator)
-    print(type(time_and_data))
+    # print(type(time_and_data))
     return time_and_data, locator, formatter
 
 
@@ -124,4 +124,4 @@ def build_datetime_numpy(data, column_date, column_time):
     locator = mdates.AutoDateLocator()
     formatter = mdates.AutoDateFormatter(locator)
 
-    return time_and_date, locator, formatter
+    return time_and_date, locator, formatter 
