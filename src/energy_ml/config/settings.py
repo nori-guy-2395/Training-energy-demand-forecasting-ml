@@ -1,0 +1,3 @@
+DATA_PATH = "data/raw/energy.csv"
+FORECAST_HORIZON_HOURS = 24
+RANDOM_SEED = 42
