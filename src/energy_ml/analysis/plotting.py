@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import numpy as np
 
 def create_basic_figure_of_data(x, y, x_label, y_label, Date=False):
     
@@ -29,3 +30,9 @@ def create_basic_figure_of_data(x, y, x_label, y_label, Date=False):
     
     
     return
+
+def mean_of_data(Data, start = None, end = None):
+
+    mean = np.mean(Data[start:end])
+    
+    return mean

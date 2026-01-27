@@ -12,7 +12,7 @@ def load_energy_data(path: str, sepa: str) -> pd.DataFrame:
     """
     df = pd.read_csv(path, sep=sepa)
     
-    print(df.head()) # show top rows
+    print(" Top 3 rows of data input", df.head(3)) # show top rows
 
     return df
 
@@ -125,3 +125,80 @@ def build_datetime_numpy(data, column_date, column_time):
     formatter = mdates.AutoDateFormatter(locator)
 
     return time_and_date, locator, formatter 
+
+
+
+def Data_formatting_clean_reassemble(data_frame):
+    '''
+    
+
+    Parameters
+    ----------
+    data_frame : dict
+        Initial imported data frame which has had the separators accounted for.
+        
+
+    Returns
+    -------
+    pandas dataframe dict. with clean numpy values in value columns, clean dates in date and time columns, 
+    additional combined date time column at 0th index
+
+    '''
+    data_frame_clean = data_frame.replace('?', np.nan)
+
+    output = {}
+    issues = {}
+
+    for col in data_frame_clean.columns:
+        series = data_frame_clean[col]
+
+        # # ---- DATETIME ----
+        # if col.lower().startswith("datetime"):
+        #     parsed = pd.to_datetime(series, errors="coerce")
+
+        # ---- DATE ----
+        if col.lower().startswith("Date"):
+            parsed = pd.to_datetime(series, errors="coerce", dayfirst=True).dt.date
+
+        # ---- TIME ----
+        elif col.lower().startswith("Time"):
+            parsed = pd.to_datetime(series, errors="coerce").dt.time
+
+        # ---- NUMERIC ----
+        else:
+            parsed = pd.to_numeric(series, errors="coerce")
+
+        # ---- Track issues ----
+        bad_mask = parsed.isna() & series.notna()
+        if bad_mask.any():
+            issues[col] = series[bad_mask]
+
+        # ---- Convert to numpy ----
+        output[col] = parsed.to_numpy()
+
+
+
+    # This seems to work, so now I need to extract, check and convert the time and date data into a datetime column and add that to the df
+
+    data_datetime = pd.to_datetime(data_frame_clean['Date'] + " " + data_frame_clean['Time'])
+
+
+    data_frame_clean['Datetime'] = data_datetime
+    # print('Data after time addition', data_frame_clean, '\n \n' 'issues', issues, type(data_frame_clean))
+
+    # print('Data after time addition headers', data_frame_clean.keys())
+
+    #  I want this column to move to the first column
+
+
+    col_last = data_frame_clean.pop('Datetime')
+
+
+    data_frame_clean.insert(0, 'Datetime', col_last)
+
+
+    # print(type(data_frame_clean))
+    
+    
+    
+    return data_frame_clean
