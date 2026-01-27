@@ -216,7 +216,7 @@ def Data_formatting_clean_reassemble(df):
     - Track parsing issues
     """
 
-    null_values = (" ", "", "NA", "?")
+    null_values = (" ", "", "NA", "?", 'bad_date')
     df = df.replace(null_values, np.nan)
 
     clean_df = pd.DataFrame(index=df.index)
