@@ -40,7 +40,7 @@ print('#########')
 
 # Basic plotting scripts for the plotting of all of the data
 
-plotting.create_basic_figure_of_data(Data_frame['Datetime'],  Data_frame['Voltage'], 'Date and time [days/months/years hours/seconds]', 'Voltage', Date=True)
+plotting.create_basic_figure_of_data(Data_frame['Datetime'],  Data_frame['Voltage'], 'Date and time [days/months/years hours/minutes]', 'Voltage', Date=True)
 
 plotting.create_basic_figure_for_each_column_against_datetime(Data_frame)
 
