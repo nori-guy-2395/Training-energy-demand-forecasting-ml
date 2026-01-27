@@ -4,8 +4,15 @@ import numpy as np
 
 def create_basic_figure_of_data(x, y, x_label, y_label, Date=False):
     
-    fig, ax = plt.subplots()
+    """
+    Standard input of plotting function 
     
+    no return but does plot a figure of the data assuming x is a datetime value
+    
+    """
+    
+    fig, ax = plt.subplots()
+
     ax.plot(x,y)
     
     # ax.set_ylim(y_range)
@@ -18,7 +25,7 @@ def create_basic_figure_of_data(x, y, x_label, y_label, Date=False):
     if Date == True:
         
         locator = mdates.AutoDateLocator()
-        formatter = mdates.DateFormatter("%d/%m %H:%M")
+        formatter = mdates.DateFormatter("%d/%m/%Y %H:%M")
 
         # Use AutoDateLocator and AutoDateFormatter
         # locator = mdates.AutoDateLocator()      # automatically choose tick positions
@@ -36,3 +43,14 @@ def mean_of_data(Data, start = None, end = None):
     mean = np.mean(Data[start:end])
     
     return mean
+
+
+def create_basic_figure_for_each_column_against_datetime(Data_frame):
+    
+    for col in Data_frame.columns:
+        series = Data_frame[col]
+        
+        if not col.lower().startswith("Datetime"):
+            create_basic_figure_of_data(Data_frame['Datetime'], series, 'Date and time [days months, hours seconds]', col, Date=True)
+    
+    return

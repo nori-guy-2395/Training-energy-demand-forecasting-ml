@@ -90,7 +90,7 @@ df = loader.load_energy_data("C:/Users/gregr/Current_coding_projects/Git_repo_te
 
 import energy_ml.data.loader as loader
 
-Data_frame = loader.Data_formatting_clean_reassemble(df)
+Data_frame, issues = loader.Data_formatting_clean_reassemble(df)
 
-print(Data_frame)
+print(Data_frame, type(Data_frame))
 

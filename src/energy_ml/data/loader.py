@@ -128,7 +128,7 @@ def build_datetime_numpy(data, column_date, column_time):
 
 
 
-def Data_formatting_clean_reassemble(data_frame):
+def Data_formatting_clean_reassemble2(data_frame):
     '''
     
 
@@ -144,21 +144,23 @@ def Data_formatting_clean_reassemble(data_frame):
     additional combined date time column at 0th index
 
     '''
-    data_frame_clean = data_frame.replace('?', np.nan)
+    null_values=(" ", "", "NA", "?")
+    
+    data_frame = data_frame.replace(null_values, np.nan)
 
     output = {}
     issues = {}
 
-    for col in data_frame_clean.columns:
-        series = data_frame_clean[col]
+    for col in data_frame.columns:
+        series = data_frame[col]
 
         # # ---- DATETIME ----
-        # if col.lower().startswith("datetime"):
+        # if col.lower().startswith("Datetime"):
         #     parsed = pd.to_datetime(series, errors="coerce")
 
         # ---- DATE ----
         if col.lower().startswith("Date"):
-            parsed = pd.to_datetime(series, errors="coerce", dayfirst=True).dt.date
+            parsed = pd.to_datetime(series, errors="coerce").dt.date
 
         # ---- TIME ----
         elif col.lower().startswith("Time"):
@@ -176,11 +178,11 @@ def Data_formatting_clean_reassemble(data_frame):
         # ---- Convert to numpy ----
         output[col] = parsed.to_numpy()
 
-
+    data_frame_clean = pd.DataFrame(output)
 
     # This seems to work, so now I need to extract, check and convert the time and date data into a datetime column and add that to the df
 
-    data_datetime = pd.to_datetime(data_frame_clean['Date'] + " " + data_frame_clean['Time'])
+    data_datetime = pd.to_datetime(data_frame_clean['Date'] + " " + data_frame_clean['Time'], dayfirst=True)
 
 
     data_frame_clean['Datetime'] = data_datetime
@@ -202,3 +204,57 @@ def Data_formatting_clean_reassemble(data_frame):
     
     
     return data_frame_clean
+
+
+
+def Data_formatting_clean_reassemble(df):
+    """
+    Clean dataframe:
+    - Convert date/time/numeric columns
+    - Combine Date + Time into Datetime
+    - Move Datetime to first column
+    - Track parsing issues
+    """
+
+    null_values = (" ", "", "NA", "?")
+    df = df.replace(null_values, np.nan)
+
+    clean_df = pd.DataFrame(index=df.index)
+    issues = {}
+
+    for col in df.columns:
+        series = df[col]
+        col_lc = col.lower()
+
+        # ---- DATE ----
+        if col_lc.startswith("date"):
+            parsed = pd.to_datetime(series, format="%d/%m/%Y", errors="coerce", dayfirst=True) # Format specified is hardcoded !!! check for alternative forms
+
+        # ---- TIME ----
+        elif col_lc.startswith("time"):
+            parsed = pd.to_datetime(series, format="%H:%M:%S", errors="coerce")  # Format specified is hardcoded !!! check for alternative forms
+
+        # ---- NUMERIC ----
+        else:
+            parsed = pd.to_numeric(series, errors="coerce")
+
+        # ---- Track issues ----
+        bad_mask = parsed.isna() & series.notna()
+        if bad_mask.any():
+            issues[col] = series[bad_mask]
+
+        clean_df[col] = parsed
+
+    # ---- Combine Date + Time ----
+    if "Date" in clean_df.columns and "Time" in clean_df.columns:
+        clean_df["Datetime"] = pd.to_datetime(
+            clean_df["Date"].dt.strftime("%Y-%m-%d") + " " +
+            clean_df["Time"].dt.strftime("%H:%M:%S"),
+            errors="coerce"
+        )
+
+        # ---- Move Datetime to front ----
+        col = clean_df.pop("Datetime")
+        clean_df.insert(0, "Datetime", col)
+
+    return clean_df, issues
