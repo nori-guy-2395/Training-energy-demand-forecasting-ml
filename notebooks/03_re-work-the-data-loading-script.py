@@ -93,3 +93,4 @@ import energy_ml.data.loader as loader
 Data_frame = loader.Data_formatting_clean_reassemble(df)
 
 print(Data_frame)
+
