@@ -38,7 +38,7 @@ def test_numeric_parsing(raw_df):
     clean_df, issues = Data_formatting_clean_reassemble(raw_df)
 
     assert pd.api.types.is_float_dtype(clean_df["Power"])
-    assert clean_df["Power"].isna().sum() == 1  # "?"    
+    assert clean_df["Power"].isna().sum() == 1  # "?, "" , " " , NA    
     
 def test_datetime_column_created(raw_df):
     clean_df, _ = Data_formatting_clean_reassemble(raw_df)
