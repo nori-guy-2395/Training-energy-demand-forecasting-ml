@@ -105,3 +105,108 @@ def figure_plotting_time_interval(
         fig.autofmt_xdate()
 
     plt.show()
+    
+    
+    
+    
+def plotting_model_full_scope(Data_fitting,t_train,y_train,y_train_pred, t_test,y_test,y_test_pred):
+    '''
+    Parameters
+    
+    Output from the trained version of the model to plot the trained and test data
+    also gives original data through combination of the the train and test data (concaternated)
+    
+    Returns
+    null: plots the figures directly.
+    
+    '''
+        
+    train_df = pd.DataFrame({"Datetime": t_train, "Actual": y_train, "Predicted": y_train_pred})
+    test_df  = pd.DataFrame({"Datetime": t_test,  "Actual": y_test,  "Predicted": y_test_pred})
+    
+    plt.figure(figsize=(14,6))
+    plt.plot(pd.concat([train_df, test_df]).sort_values("Datetime")["Datetime"],
+             pd.concat([train_df, test_df]).sort_values("Datetime")["Actual"],
+             label="Actual", color="black", alpha=0.6)
+    plt.scatter(train_df["Datetime"], train_df["Predicted"], label="Train Prediction", color="blue", s=10)
+    plt.scatter(test_df["Datetime"], test_df["Predicted"], label="Test Prediction", color="red", s=10)
+    plt.xlabel("Datetime")
+    plt.ylabel(Data_fitting)
+    plt.title("Actual vs Predicted Energy Consumption with feature(s)")
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+    
+    
+    return    
+    
+def plotting_model_zoom(Data_fitting, t_train, t_test, y_train, y_test, y_train_pred, y_test_pred, start_time = None, end_time = None):
+    
+    '''
+    Parameters
+    
+    Output from the trained version of the model to plot the trained and test data
+    also gives original data through combination of the the train and test data (concaternated)
+    
+    Returns
+    null: plots the figures directly.
+    
+    '''
+    
+    
+    
+    # def plotting_model_zoom(Data_fitting, t_train, t_test, y_train, y_test, y_train_pred, y_test_pred, start_time=None, end_time=None):
+
+    train_df = pd.DataFrame({"Datetime": t_train, "Actual": y_train, "Predicted": y_train_pred})
+    test_df  = pd.DataFrame({"Datetime": t_test,  "Actual": y_test,  "Predicted": y_test_pred})
+
+    # Find global bounds
+    global_start = min(train_df["Datetime"].min(), test_df["Datetime"].min())
+    global_end   = max(train_df["Datetime"].max(), test_df["Datetime"].max())
+
+    # Fill missing inputs
+    if start_time is None:
+        start_time = global_start
+
+    if end_time is None:
+        end_time = global_end
+
+    print("Using start_time:", start_time)
+    print("Using end_time:", end_time)
+
+    # Filter once
+    train_zoom = train_df[(train_df["Datetime"] >= start_time) & (train_df["Datetime"] <= end_time)]
+    test_zoom  = test_df[(test_df["Datetime"] >= start_time) & (test_df["Datetime"] <= end_time)]
+    
+
+
+    fig, ax = plt.subplots(figsize=(12,5))
+
+    # Make pretty
+
+    locator = mdates.AutoDateLocator()
+    formatter = mdates.DateFormatter("%d/%m/%Y %H:%M")
+    ax.xaxis.set_major_locator(locator)
+    ax.xaxis.set_major_formatter(formatter)
+    fig.autofmt_xdate()
+
+    # Actual
+    ax.plot(pd.concat([train_zoom, test_zoom]).sort_values("Datetime")["Datetime"],
+             pd.concat([train_zoom, test_zoom]).sort_values("Datetime")["Actual"],
+             label="Actual", color="black", alpha=0.6)
+
+    # Predictions
+    ax.scatter(train_zoom["Datetime"], train_zoom["Predicted"], label="Train Prediction", color="blue", s=10)
+    ax.scatter(test_zoom["Datetime"], test_zoom["Predicted"], label="Test Prediction", color="red", s=10)
+
+    ax.set_xlabel("Datetime")
+    ax.set_ylabel(Data_fitting)
+    # ax.set_title("Zoomed Energy Consumption with" + str(Features) + "feature(s)")
+    ax.set_title("Zoomed Energy Consumption with feature(s)")
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+    
+
+    return    
+    
