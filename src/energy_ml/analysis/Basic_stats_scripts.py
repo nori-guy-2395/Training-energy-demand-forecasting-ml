@@ -5,6 +5,8 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.model_selection import train_test_split
 import numpy as np
 
+import ast
+
 def Information_data_analysis(Data_frame, Data_header, Time_frame_analysis = 'Y', show_mean = False):
 
 
@@ -110,20 +112,32 @@ def Linear_regression_function_time(Feature, df, Fitting_to):
             df[i] = df["Datetime"].dt.year
         if i == 'quarter':
             df[i] = df["Datetime"].dt.quarter
+        if i == 'lag_1':
+            df[i] = df[Fitting_to].shift(1)            
+        if i == 'lag_24':
+            df[i] = df[Fitting_to].shift(24)
+        if i == 'rolling_24_mean':
+            df[i] = df[Fitting_to].shift(1).rolling(window=24).mean()
+        if i == 'rolling_24_std':
+            df[i] = df[Fitting_to].shift(1).rolling(window=24).std()
         else:
-            print("problem with the called data. Try: hour, dayofweek, month, day, year, quarter")
+            print("problem with the called data. Try: hour, dayofweek, month, day, year, quarter, lag_1, lag_24, rolling_24_mean, rolling_24_std")
 
     valid_mask = df[Fitting_to].notna()
     df_valid = df[valid_mask].copy()  # This says where there are values that are not valid for cropping out
 
-    print('check', type(df_valid), type(valid_mask))
+    # print('check', type(df_valid), type(valid_mask))
 
-    print('feature', Feature)    
-
+    # print('feature', Feature)    
+ 
+    # Feature_dt = Feature + ['Datetime']
+    
+    df_valid = df.dropna(subset=Feature + [Fitting_to]).copy()
+    
+    # print('feature', Feature)
+    # 
     Feature_dt = Feature + ['Datetime']
-
-    print('feature', Feature)
-
+    
     X = df_valid[Feature_dt].copy()  # keep Datetime for plotting
     y = df_valid[Fitting_to] # This is the fitting value in y
 
@@ -157,7 +171,7 @@ def Linear_regression_function_time(Feature, df, Fitting_to):
         "Test RMSE": np.sqrt(mean_squared_error(y_test, y_test_pred))
     }
 
-    print(metrics)
+    print('function print, the metric:', metrics)
 
 
     train_df = pd.DataFrame({"Datetime": t_train, "Actual": y_train, "Predicted": y_train_pred})
@@ -166,3 +180,85 @@ def Linear_regression_function_time(Feature, df, Fitting_to):
 
     
     return model, metrics, t_train, t_test, y_train, y_test, y_train_pred, y_test_pred
+
+def load_and_analyse_results(csv_path, overfit_quantile=0.9):
+    """
+    Loads saved feature search results and:
+    
+        
+    Plots MAE vs number of features (train vs test)
+    
+    Detect any overfitting 
+    
+    Compute & plot Pareto-optimal models
+    """
+
+    # Load the results
+    df_results = pd.read_csv(csv_path)
+
+    # Check and parse the features such taht the load is safely handled.
+    if isinstance(df_results.loc[0, "features"], str):
+        df_results["features"] = df_results["features"].apply(ast.literal_eval)
+
+    # MAE comparisons
+    mae_summary = (
+        df_results
+        .groupby("n_features")[["train_mae", "test_mae"]]
+        .mean()
+        .reset_index()
+    )
+
+    plt.figure(figsize=(8, 5))
+    plt.plot(mae_summary["n_features"], mae_summary["train_mae"], marker="o", label="Train MAE")
+    plt.plot(mae_summary["n_features"], mae_summary["test_mae"], marker="o", label="Test MAE")
+    plt.xlabel("Number of Features")
+    plt.ylabel("MAE")
+    plt.title("MAE vs Number of Features")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+    # Checkking for overfitting. OVerfitting above gap between test and train
+    df_results["mae_gap"] = df_results["test_mae"] - df_results["train_mae"]
+    threshold = df_results["mae_gap"].quantile(overfit_quantile)
+    df_results["overfit_flag"] = df_results["mae_gap"] > threshold
+
+    print("\n Highest overfitted models:")
+    print(df_results.sort_values("mae_gap", ascending=False)
+          .head(10)[["features", "n_features", "train_mae", "test_mae", "mae_gap"]])
+
+    # Pareto sorting
+    pareto_rows = []
+    for i, row in df_results.iterrows():
+        dominated = False
+        for j, other in df_results.iterrows():
+            if (
+                (other["test_mae"] <= row["test_mae"]) and
+                (other["n_features"] <= row["n_features"]) and
+                (
+                    (other["test_mae"] < row["test_mae"]) or
+                    (other["n_features"] < row["n_features"])
+                )
+            ):
+                dominated = True
+                break
+        if not dominated:
+            pareto_rows.append(row)
+
+    df_pareto = pd.DataFrame(pareto_rows).sort_values(["n_features", "test_mae"])
+
+    print("\n  Pareto-optimal models (lowest features highest reliability):")
+    print(df_pareto[["features", "n_features", "test_mae", "test_rmse"]])
+
+    # plotting the paretto figure
+    plt.figure(figsize=(8, 5))
+    plt.scatter(df_results["n_features"], df_results["test_mae"], alpha=0.3, label="All models")
+    plt.scatter(df_pareto["n_features"], df_pareto["test_mae"], label="Pareto-optimal")
+    plt.xlabel("Number of Features")
+    plt.ylabel("Test MAE")
+    plt.title("Pareto Front: Model Complexity vs Performance")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+    return df_results, df_pareto
