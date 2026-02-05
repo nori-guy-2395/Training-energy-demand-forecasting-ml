@@ -35,5 +35,4 @@ Maybe including the other data in the rolling averages, such as relating voltage
 
 
 
-
 """

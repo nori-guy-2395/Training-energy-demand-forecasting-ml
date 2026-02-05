@@ -44,7 +44,7 @@ Data_frame = loader.load_energy_data("C:/Users/gregr/Current_coding_projects/Git
 df, issues = loader.Data_formatting_clean_reassemble(Data_frame)
 print(df.info())
 
-Data_fitting = 'Global_active_power'
+Data_fitting = 'Global_intensity'
 # Features = ['hour', 'dayofweek']
 
         # if i == 'hour':
@@ -146,7 +146,7 @@ print("Best features:", best_features)
 print("Test MAE:", best_row["test_mae"]) # Show!
 print("Test RMSE:", best_row["test_rmse"])
 
-df_ranked.to_csv("linear_regression_feature_search.csv", index=False) # save data
+df_ranked.to_csv(Data_fitting+"linear_regression_feature_search.csv", index=False) # save data
 
 import matplotlib.pyplot as plt
 
