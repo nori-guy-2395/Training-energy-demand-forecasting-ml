@@ -146,7 +146,7 @@ print("Best features:", best_features)
 print("Test MAE:", best_row["test_mae"]) # Show!
 print("Test RMSE:", best_row["test_rmse"])
 
-df_ranked.to_csv(Data_fitting+"linear_regression_feature_search.csv", index=False) # save data
+df_ranked.to_csv(Data_fitting+"random_forest_regression_feature_search.csv", index=False) # save data
 
 import matplotlib.pyplot as plt
 

@@ -73,7 +73,12 @@ model = LinearRegression()
 
 """
 
+Linear regression 
 
+{'Train MAE': 0.762262308303739, 
+ 'Train RMSE': np.float64(1.0110438202084313), 
+ 'Test MAE': 0.7625284781065171, 
+ 'Test RMSE': np.float64(1.0134337705189904)}
 
 
 Random forest regressor
@@ -82,6 +87,11 @@ Random forest regressor
  'Train RMSE': np.float64(0.8692514979178609), 
  'Test MAE': 0.5971279673091375, 
  'Test RMSE': np.float64(0.8727702151423351)}
+
+
+BAsic model improves the MAE and RMSE over the linear regression model, 
+
+but notable for slightly longer run times (not traked accurately, but can tell)
 
 
 """
@@ -119,7 +129,7 @@ plt.xlabel("Datetime")
 plt.ylabel("Global Active Power")
 plt.title("Actual vs Predicted Energy Consumption (Hour Feature)")
 plt.legend()
-plt.tight_layout()
+plt.tight_layout()+
 plt.show()
 
 
