@@ -27,7 +27,7 @@ Data_frame = loader.load_energy_data("C:/Users/gregr/Current_coding_projects/Git
 df, issues = loader.Data_formatting_clean_reassemble(Data_frame)
 print(df.info())
 
-Data_fitting = 'Global_active_'
+Data_fitting = 'Global_active_power'
 # Features = ['hour', 'dayofweek']
 
         # if i == 'hour':

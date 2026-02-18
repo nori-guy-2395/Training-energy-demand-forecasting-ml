@@ -129,7 +129,7 @@ plt.xlabel("Datetime")
 plt.ylabel("Global Active Power")
 plt.title("Actual vs Predicted Energy Consumption (Hour Feature)")
 plt.legend()
-plt.tight_layout()+
+plt.tight_layout()
 plt.show()
 
 

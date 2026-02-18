@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 from itertools import combinations
-
+from sklearn.model_selection import GridSearchCV
 
 
 
@@ -179,8 +179,8 @@ def Linear_regression_function_time(Feature, df, Fitting_to):
     print('function print, the metric:', metrics)
 
 
-    train_df = pd.DataFrame({"Datetime": t_train, "Actual": y_train, "Predicted": y_train_pred})
-    test_df  = pd.DataFrame({"Datetime": t_test,  "Actual": y_test,  "Predicted": y_test_pred})
+    # train_df = pd.DataFrame({"Datetime": t_train, "Actual": y_train, "Predicted": y_train_pred})
+    # test_df  = pd.DataFrame({"Datetime": t_test,  "Actual": y_test,  "Predicted": y_test_pred})
 
 
     
@@ -271,7 +271,7 @@ def load_and_analyse_results(csv_path, overfit_quantile=0.9):
 def Random_forest_regression_function(Feature, df, Fitting_to):
 
     '''
-    Linear regression fitting to dataset
+    Random forest regression fitting to dataset
     
     Define features in time variables automatically  chooses the datatime64 pandas frame
     
@@ -391,8 +391,8 @@ def Random_forest_regression_function(Feature, df, Fitting_to):
     print('function print, the metric:', metrics)
 
 
-    train_df = pd.DataFrame({"Datetime": t_train, "Actual": y_train, "Predicted": y_train_pred})
-    test_df  = pd.DataFrame({"Datetime": t_test,  "Actual": y_test,  "Predicted": y_test_pred})
+    # train_df = pd.DataFrame({"Datetime": t_train, "Actual": y_train, "Predicted": y_train_pred})
+    # test_df  = pd.DataFrame({"Datetime": t_test,  "Actual": y_test,  "Predicted": y_test_pred})
 
 
     
@@ -411,7 +411,7 @@ def analyse_the_best_features_random_forest(Features, df, Data_fitting):
             i += 1
             print(f"{i}/{total} -> {combo}")
             model, metric, t_train, t_test, y_train, y_test, y_train_pred, y_test_pred = \
-                Random_forest_regression_function(list(combo), df, Data_fitting)  # Use the previous function to fit to the data and analyse
+                Random_forest_regression_function_start_End_split(list(combo), df, Data_fitting)  # Use the previous function to fit to the data and analyse
 
             test_mae = metric['Test MAE']
             test_rmse = metric['Test RMSE']
@@ -483,10 +483,327 @@ def analyse_the_best_features_random_forest(Features, df, Data_fitting):
 
 
 
+def Random_forest_regression_function_grid_seach(Feature, df, Fitting_to):
+
+    '''
+    Random forst regression fitting to dataset
+    
+    Define features in time variables automatically  chooses the datatime64 pandas frame
+    
+    Parameters
+    ----------
+    Feature 
+    list of features to be used to produce linear regression fit
+    
+    df
+    Panads data frame of the data to take a fit
+    
+    MUST have Datetime collumn for this function to work 
+    
+
+    Returns     
+    ----------
+    Model
+    Trained linear model object
+    
+    Metrics
+    RSME and MAE defaulat returns from the linear regression model
+    
+    Percentage metrics
+    Normalised RSME and MAE from the data set 
+   
+    Notes
+    -----------
+    
+    Grid search of the "best model" hyper parameters included 
+
+    '''
+    # # Assume df_features has 'Datetime' and 'Global_active_power'
+    df = df.copy()
+    
+    # # features that are then enurmerated so that the date/days/months can be enumerated
+    # df["hour"] = df["Datetime"].dt.hour
+    # df["dayofweek"] = df["Datetime"].dt.dayofweek
+    # df["month"] = df["Datetime"].dt.month
+    # df["day"] = df["Datetime"].dt.day
+    # df["year"] = df["Datetime"].dt.year
+    # df["quarter"] = df["Datetime"].dt.quarter
+
+    for i in Feature:
+        if i == 'hour':
+            df[i] = df["Datetime"].dt.hour
+        if i == 'dayofweek':
+            df[i] = df["Datetime"].dt.dayofweek
+        if i == 'month':
+            df[i] = df["Datetime"].dt.month
+        if i == 'day':
+            df[i] = df["Datetime"].dt.day
+        if i == 'year':
+            df[i] = df["Datetime"].dt.year
+        if i == 'quarter':
+            df[i] = df["Datetime"].dt.quarter
+        if i == 'lag_1':
+            df[i] = df[Fitting_to].shift(1)            
+        if i == 'lag_24':
+            df[i] = df[Fitting_to].shift(24)
+        if i == 'rolling_24_mean':
+            df[i] = df[Fitting_to].shift(1).rolling(window=24).mean()
+        if i == 'rolling_24_std':
+            df[i] = df[Fitting_to].shift(1).rolling(window=24).std()
+        if i == 'Voltage_01':
+            df[i] = df['Voltage'].shift(0.1)
+        else:
+            print("problem with the called data. Try: hour, dayofweek, month, day, year, quarter, lag_1, lag_24, rolling_24_mean, rolling_24_std")
+
+    valid_mask = df[Fitting_to].notna()
+    df_valid = df[valid_mask].copy()  # This says where there are values that are not valid for cropping out
+
+    # print('check', type(df_valid), type(valid_mask))
+
+    # print('feature', Feature)    
+ 
+    # Feature_dt = Feature + ['Datetime']
+    
+    df_valid = df.dropna(subset=Feature + [Fitting_to]).copy()
+    
+    # print('feature', Feature)
+    # 
+    Feature_dt = Feature + ['Datetime']
+    
+    X = df_valid[Feature_dt].copy()  # keep Datetime for plotting
+    y = df_valid[Fitting_to] # This is the fitting value in y
+
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    ) # Splitting the data
+
+    # Save timestamps for plotting later
+    t_train = X_train["Datetime"]
+    t_test = X_test["Datetime"]
+
+    # Drop Datetime for model input as the time data would be super bad (can't fit to datatime64 format)
+    X_train_model = X_train[Feature]
+    X_test_model  = X_test[Feature]
+    param_grid = {
+    "n_estimators": [100, 300],
+    "max_depth": [5, 10, None],
+    "min_samples_leaf": [1, 10, 50]
+    }
+
+    rf = RandomForestRegressor(random_state=42, n_jobs=-1)
+    
+    grid = GridSearchCV(
+        rf,
+        param_grid,
+        scoring="neg_mean_absolute_error",
+        cv=3,
+        n_jobs=-1,
+        verbose=2
+    )
+    
+    grid.fit(X_train_model, y_train)
+    
+    best_model = grid.best_estimator_
+    print("Best params:", grid.best_params_)
+
+    #   Linear regression !!!!
+####  SWAPPED OUT THE LINEAR REGRESSION MODEL FOR A RANDOM FOREST REGRESSOR  - "STANDARD SETTINGS" !
+    # model = RandomForestRegressor(
+    #     n_estimators=200,
+    #     max_depth=None,
+    #     random_state=42,
+    #     n_jobs=-1
+    # )
+    # model.fit(X_train_model, y_train)
+
+    # Predictions
+    y_train_pred = best_model.predict(X_train_model)
+    # y_test_pred  = model.predict(X_test_model)
+    y_test_pred = best_model.predict(X_test_model)
+    # Metrics --- Currently no analysis or discussion of the data
+    metrics = {
+        "Train MAE": mean_absolute_error(y_train, y_train_pred),
+        "Train RMSE": np.sqrt(mean_squared_error(y_train, y_train_pred)),
+        "Test MAE": mean_absolute_error(y_test, y_test_pred),
+        "Test RMSE": np.sqrt(mean_squared_error(y_test, y_test_pred))
+    }
+
+    print('function print, the metric:', metrics)
+
+
+    # train_df = pd.DataFrame({"Datetime": t_train, "Actual": y_train, "Predicted": y_train_pred})
+    # test_df  = pd.DataFrame({"Datetime": t_test,  "Actual": y_test,  "Predicted": y_test_pred})
+
+
+    
+    return best_model, metrics, t_train, t_test, y_train, y_test, y_train_pred, y_test_pred
 
 
 
+def Random_forest_regression_function_start_End_split(Feature, df, Fitting_to):
 
+    '''
+    Random forest regression fitting to dataset
+    
+    Define features in time variables automatically  chooses the datatime64 pandas frame
+    
+    Parameters
+    ----------
+    Feature 
+    list of features to be used to produce linear regression fit
+    
+    df
+    Panads data frame of the data to take a fit
+    
+    MUST have Datetime collumn for this function to work 
+    
+
+    Returns     
+    ----------
+    Model
+    Trained linear model object
+    
+    Metrics
+    RSME and MAE defaulat returns from the linear regression model
+    
+    Percentage metrics
+    Normalised RSME and MAE from the data set 
+   
+
+    '''
+    # # Assume df_features has 'Datetime' and 'Global_active_power'
+    df = df.copy()
+    
+    # # features that are then enurmerated so that the date/days/months can be enumerated
+    # df["hour"] = df["Datetime"].dt.hour
+    # df["dayofweek"] = df["Datetime"].dt.dayofweek
+    # df["month"] = df["Datetime"].dt.month
+    # df["day"] = df["Datetime"].dt.day
+    # df["year"] = df["Datetime"].dt.year
+    # df["quarter"] = df["Datetime"].dt.quarter
+
+    for i in Feature:
+        if i == 'hour':
+            df[i] = df["Datetime"].dt.hour
+        if i == 'dayofweek':
+            df[i] = df["Datetime"].dt.dayofweek
+        if i == 'month':
+            df[i] = df["Datetime"].dt.month
+        if i == 'day':
+            df[i] = df["Datetime"].dt.day
+        if i == 'year':
+            df[i] = df["Datetime"].dt.year
+        if i == 'quarter':
+            df[i] = df["Datetime"].dt.quarter
+        if i == 'lag_1':
+            df[i] = df[Fitting_to].shift(1)            
+        if i == 'lag_24':
+            df[i] = df[Fitting_to].shift(24)
+        if i == 'rolling_24_mean':
+            df[i] = df[Fitting_to].shift(1).rolling(window=24).mean()
+        if i == 'rolling_24_std':
+            df[i] = df[Fitting_to].shift(1).rolling(window=24).std()
+        else:
+            print("problem with the called data. Try: hour, dayofweek, month, day, year, quarter, lag_1, lag_24, rolling_24_mean, rolling_24_std")
+
+    valid_mask = df[Fitting_to].notna()
+    df_valid = df[valid_mask].copy()  # This says where there are values that are not valid for cropping out
+
+    # print('check', type(df_valid), type(valid_mask))
+
+    # print('feature', Feature)    
+ 
+    # Feature_dt = Feature + ['Datetime']
+    
+    df_valid = df.dropna(subset=Feature + [Fitting_to]).copy()
+    # Sort by time first (CRITICAL for lag features)
+    df_valid = df.sort_values("Datetime").dropna(subset=Feature + [Fitting_to]).copy()
+    
+    # Keep Datetime for plotting
+    Feature_dt = Feature + ["Datetime"]
+    
+    X = df_valid[Feature_dt].copy()
+    y = df_valid[Fitting_to].copy()
+    
+    # ---- Time-based split (NOT random) ----
+    split_idx = int(len(df_valid) * 0.8)
+    
+    X_train = X.iloc[:split_idx]
+    X_test  = X.iloc[split_idx:]
+    
+    y_train = y.iloc[:split_idx]
+    y_test  = y.iloc[split_idx:]
+    
+    # Save timestamps for plotting
+    t_train = X_train["Datetime"]
+    t_test  = X_test["Datetime"]
+    
+    # Drop Datetime for model input
+    X_train_model = X_train[Feature]
+    X_test_model  = X_test[Feature]
+
+    
+####  SWAPPED OUT THE LINEAR REGRESSION MODEL FOR A RANDOM FOREST REGRESSOR  - "Memory saver SETTINGS" !
+    model = RandomForestRegressor(
+        n_estimators=100,
+        max_depth=5,
+        random_state=42,
+        n_jobs=-1
+    )
+    
+# ####  SWAPPED OUT THE LINEAR REGRESSION MODEL FOR A RANDOM FOREST REGRESSOR  - "STANDARD SETTINGS" !
+#     model = RandomForestRegressor(
+#         n_estimators=200,
+#         max_depth=None,
+#         random_state=42,
+#         n_jobs=-1
+#     )
+
+    ''' 
+    Trialling a try except for memory saving... Maybe not good for model comparisons.
+    '''
+        
+    # try:
+    #     print("Trying standard RandomForest settings...")
+    #     model = RandomForestRegressor(
+    #         n_estimators=100,
+    #         max_depth=10,
+    #         random_state=42,
+    #         n_jobs=1
+    #     )
+    # except MemoryError:
+    #     print(" MemoryError creating standard model. Falling back to memory-saver settings.")
+    #     model = RandomForestRegressor(
+    #         n_estimators=100,
+    #         max_depth=10,
+    #         random_state=42,
+    #         n_jobs=1
+    #     )
+
+    model.fit(X_train_model, y_train)
+
+    # Predictions
+    y_train_pred = model.predict(X_train_model)
+    y_test_pred  = model.predict(X_test_model)
+
+    # Metrics --- Currently no analysis or discussion of the data
+    metrics = {
+        "Train MAE": mean_absolute_error(y_train, y_train_pred),
+        "Train RMSE": np.sqrt(mean_squared_error(y_train, y_train_pred)),
+        "Test MAE": mean_absolute_error(y_test, y_test_pred),
+        "Test RMSE": np.sqrt(mean_squared_error(y_test, y_test_pred))
+    }
+
+    print('function print, the metric:', metrics)
+
+
+    # train_df = pd.DataFrame({"Datetime": t_train, "Actual": y_train, "Predicted": y_train_pred})
+    # test_df  = pd.DataFrame({"Datetime": t_test,  "Actual": y_test,  "Predicted": y_test_pred})
+
+
+    
+    return model, metrics, t_train, t_test, y_train, y_test, y_train_pred, y_test_pred
 
 
 
